@@ -12,7 +12,9 @@ data class Wish(
     @ColumnInfo(name = "wish-title")
     val title: String = "",
     @ColumnInfo(name = "wish-description")
-    val description: String = ""
+    val description: String = "",
+    @ColumnInfo(name = "wish-items")
+    val items: String = "[]"
 )
 
 object DummyWish{

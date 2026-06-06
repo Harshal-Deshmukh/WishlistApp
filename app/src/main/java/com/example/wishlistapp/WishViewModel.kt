@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.wishlistapp.data.Wish
+import com.example.wishlistapp.data.WishItem
 import com.example.wishlistapp.data.WishRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -18,6 +19,7 @@ class WishViewModel(
 
     var wishTitleState by mutableStateOf("")
     var wishDescriptionState by mutableStateOf("")
+    var wishItemsState by mutableStateOf(listOf<WishItem>())
 
     fun onWishTitleChanged(newString: String){
         wishTitleState = newString
@@ -55,6 +57,21 @@ class WishViewModel(
         viewModelScope.launch (Dispatchers.IO){
             wishRepository.deleteAWish(wish = wish)
         }
+    }
+
+    fun onWishItemAdded(item: WishItem) {
+        wishItemsState = wishItemsState + item
+    }
+
+    fun onWishItemChecked(item: WishItem, isChecked: Boolean) {
+        wishItemsState = wishItemsState.map {
+            if(it.id == item.id) it.copy(isChecked = isChecked)
+            else it
+        }
+    }
+
+    fun onWishItemDeleted(item: WishItem) {
+        wishItemsState = wishItemsState - item
     }
 
 }

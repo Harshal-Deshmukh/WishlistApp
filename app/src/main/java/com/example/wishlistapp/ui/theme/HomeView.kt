@@ -48,6 +48,15 @@ import com.example.wishlistapp.AppBarView
 import com.example.wishlistapp.Screen
 import com.example.wishlistapp.data.Wish
 import com.example.wishlistapp.WishViewModel
+import androidx.compose.material.Checkbox
+import androidx.compose.material.CheckboxDefaults
+import androidx.compose.material.Divider
+import androidx.compose.runtime.remember
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextDecoration
+import com.example.wishlistapp.data.WishItem
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -155,8 +164,26 @@ fun HomeView(
                         },
                         directions = setOf(DismissDirection.EndToStart),
                         dismissThresholds = { FractionalThreshold(0.25f) },
+                        // ✅ onWishItemChecked add karo
                         dismissContent = {
-                            WishItem(wish = wish) {
+                            WishItem(
+                                wish = wish,
+                                onWishItemChecked = { item, isChecked ->
+                                    // Updated wish banao
+                                    val updatedItems = Gson().fromJson<List<WishItem>>(
+                                        wish.items,
+                                        object : TypeToken<List<WishItem>>() {}.type
+                                    ).map {
+                                        if (it.id == item.id) it.copy(isChecked = isChecked)
+                                        else it
+                                    }
+                                    viewModel.updateWish(
+                                        wish.copy(
+                                            items = Gson().toJson(updatedItems)
+                                        )
+                                    )
+                                }
+                            ) {
                                 navController.navigate(
                                     Screen.AddScreen.route + "/${wish.id}"
                                 )
@@ -172,7 +199,22 @@ fun HomeView(
 
 
 @Composable
-fun WishItem(wish: Wish, onClick: () -> Unit) {
+fun WishItem(wish: Wish,
+             onWishItemChecked: (WishItem, Boolean) -> Unit,
+             onClick: () -> Unit) {
+
+    // Items parse karo
+    val items: List<WishItem> = remember(wish.items) {
+        try {
+            Gson().fromJson(
+                wish.items,
+                object : TypeToken<List<WishItem>>() {}.type
+            ) ?: listOf()
+        } catch (e: Exception) {
+            listOf()
+        }
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -180,35 +222,70 @@ fun WishItem(wish: Wish, onClick: () -> Unit) {
             .clickable { onClick() },
         elevation = 6.dp,
         backgroundColor = Color.White,
-        shape = RoundedCornerShape(12.dp)  // ✅ Rounded corners
+        shape = RoundedCornerShape(12.dp)
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // ✅ Pink dot decoration
-            Box(
-                modifier = Modifier
-                    .size(10.dp)
-                    .background(
-                        color = Color(0xFFE91E63),
-                        shape = CircleShape
+        Column(modifier = Modifier.padding(16.dp)) {
+
+            // ✅ Title Row
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .background(
+                            color = Color(0xFFE91E63),
+                            shape = CircleShape
+                        )
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = wish.title,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = Color(0xFF212121)
                     )
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Text(
-                    text = wish.title,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    color = Color(0xFF212121)
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = wish.description,
-                    fontSize = 13.sp,
-                    color = Color.Gray
-                )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = wish.description,
+                        fontSize = 13.sp,
+                        color = Color.Gray
+                    )
+                }
+            }
+
+            // ✅ Checklist - sirf tab dikhao jab items hon
+            if (items.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Divider(color = Color(0xFFFFB6C1))
+                Spacer(modifier = Modifier.height(8.dp))
+
+                items.forEach { item ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = item.isChecked,
+                            onCheckedChange = {
+                                onWishItemChecked(item, it)
+                            },
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = Color(0xFF4CAF50)
+                            )
+                        )
+                        Text(
+                            text = item.title,
+                            fontSize = 13.sp,
+                            color = if (item.isChecked)
+                                Color.Gray else Color.Black,
+                            style = TextStyle(
+                                textDecoration = if (item.isChecked)
+                                    TextDecoration.LineThrough
+                                else TextDecoration.None
+                            )
+                        )
+                    }
+                }
             }
         }
     }

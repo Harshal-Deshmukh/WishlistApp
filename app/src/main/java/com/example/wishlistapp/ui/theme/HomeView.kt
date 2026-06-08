@@ -51,6 +51,7 @@ import com.example.wishlistapp.WishViewModel
 import androidx.compose.material.Checkbox
 import androidx.compose.material.CheckboxDefaults
 import androidx.compose.material.Divider
+import androidx.compose.material.MaterialTheme
 import androidx.compose.runtime.remember
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextDecoration
@@ -63,19 +64,24 @@ import com.google.gson.reflect.TypeToken
 fun HomeView(
     navController: NavController,
     viewModel: WishViewModel
-){
+) {
     val context = LocalContext.current
+    val primaryColor = MaterialTheme.colors.primary
+
     Scaffold(
         topBar = {
-            AppBarView(title = "WishList") {
-                Toast.makeText(context, "Button Clicked", Toast.LENGTH_LONG).show()
-            }
+            AppBarView(
+                title = "WishList",
+                onSettingsClicked = {
+                    navController.navigate(Screen.SettingsScreen.route)
+                }
+            )
         },
         floatingActionButton = {
             FloatingActionButton(
                 modifier = Modifier.padding(all = 20.dp),
                 contentColor = Color.White,
-                containerColor = Color(0xFFE91E63), // ✅ Pink theme match
+                containerColor = primaryColor,
                 onClick = {
                     navController.navigate(Screen.AddScreen.route + "/0L")
                 }
@@ -84,126 +90,120 @@ fun HomeView(
             }
         }
     ) {
-        Column (
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFFFFF0F5)) // ✅ Light pink background
+                .background(primaryColor.copy(alpha = 0.1f))
                 .padding(it)
-        ){
+        ) {
+            val wishlist = viewModel.getAllWishes.collectAsState(initial = listOf())
 
-        val wishlist = viewModel.getAllWishes.collectAsState(initial = listOf())
-
-        //  Empty State - jab koi wish nahi
-        if (wishlist.value.isEmpty()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(it),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = null,
-                    tint = Color(0xFFFFB6C1),
-                    modifier = Modifier.size(80.dp)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "No Wishes Yet!",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFFE91E63)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Tap + to add your first wish",
-                    fontSize = 14.sp,
-                    color = Color.Gray
-                )
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(it)
-            ) {
-                items(wishlist.value) { wish ->
-                    val dismissState = rememberDismissState(
-                        confirmStateChange = {
-                            if (it == DismissValue.DismissedToEnd ||
-                                it == DismissValue.DismissedToStart) {
-                                viewModel.deleteWish(wish)
-                            }
-                            true
-                        }
+            if (wishlist.value.isEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(it),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        tint = primaryColor.copy(alpha = 1.0f),
+                        modifier = Modifier.size(80.dp)
                     )
-                    SwipeToDismiss(
-                        state = dismissState,
-                        background = {
-                            val color by animateColorAsState(
-                                if (dismissState.dismissDirection
-                                    == DismissDirection.EndToStart)
-                                    Color(0xFFE91E63)  // ✅ Red ki jagah Pink
-                                else Color.Transparent,
-                                label = ""
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(color)
-                                    .padding(horizontal = 20.dp),
-                                contentAlignment = Alignment.CenterEnd
-                            ) {
-                                Icon(
-                                    Icons.Default.Delete,
-                                    contentDescription = "Delete",
-                                    tint = Color.White
-                                )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "No Wishes Yet!",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = primaryColor.copy(alpha = 1.0f)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Tap + to add your first wish",
+                        fontSize = 14.sp,
+                        color = Color.Gray
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(it)
+                ) {
+                    items(wishlist.value) { wish ->
+                        val dismissState = rememberDismissState(
+                            confirmStateChange = {
+                                if (it == DismissValue.DismissedToEnd ||
+                                    it == DismissValue.DismissedToStart
+                                ) {
+                                    viewModel.deleteWish(wish)
+                                }
+                                true
                             }
-                        },
-                        directions = setOf(DismissDirection.EndToStart),
-                        dismissThresholds = { FractionalThreshold(0.25f) },
-                        // ✅ onWishItemChecked add karo
-                        dismissContent = {
-                            WishItem(
-                                wish = wish,
-                                onWishItemChecked = { item, isChecked ->
-                                    // Updated wish banao
-                                    val updatedItems = Gson().fromJson<List<WishItem>>(
-                                        wish.items,
-                                        object : TypeToken<List<WishItem>>() {}.type
-                                    ).map {
-                                        if (it.id == item.id) it.copy(isChecked = isChecked)
-                                        else it
-                                    }
-                                    viewModel.updateWish(
-                                        wish.copy(
-                                            items = Gson().toJson(updatedItems)
-                                        )
+                        )
+                        SwipeToDismiss(
+                            state = dismissState,
+                            background = {
+                                val color by animateColorAsState(
+                                    if (dismissState.dismissDirection == DismissDirection.EndToStart)
+                                        //primaryColor
+                                        Color(0xFFE53935)
+                                    else Color.Transparent,
+                                    label = ""
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(color)
+                                        .padding(horizontal = 20.dp),
+                                    contentAlignment = Alignment.CenterEnd
+                                ) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = "Delete",
+                                        tint = Color.White
                                     )
                                 }
-                            ) {
-                                navController.navigate(
-                                    Screen.AddScreen.route + "/${wish.id}"
-                                )
+                            },
+                            directions = setOf(DismissDirection.EndToStart),
+                            dismissThresholds = { FractionalThreshold(0.25f) },
+                            dismissContent = {
+                                WishItem(
+                                    wish = wish,
+                                    primaryColor = primaryColor,
+                                    onWishItemChecked = { item, isChecked ->
+                                        val updatedItems = Gson().fromJson<List<WishItem>>(
+                                            wish.items,
+                                            object : TypeToken<List<WishItem>>() {}.type
+                                        ).map {
+                                            if (it.id == item.id) it.copy(isChecked = isChecked)
+                                            else it
+                                        }
+                                        viewModel.updateWish(
+                                            wish.copy(items = Gson().toJson(updatedItems))
+                                        )
+                                    }
+                                ) {
+                                    navController.navigate(Screen.AddScreen.route + "/${wish.id}")
+                                }
                             }
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }
     }
-    }
 }
 
-
 @Composable
-fun WishItem(wish: Wish,
-             onWishItemChecked: (WishItem, Boolean) -> Unit,
-             onClick: () -> Unit) {
-
-    // Items parse karo
+fun WishItem(
+    wish: Wish,
+    primaryColor: Color,
+    onWishItemChecked: (WishItem, Boolean) -> Unit,
+    onClick: () -> Unit
+) {
     val items: List<WishItem> = remember(wish.items) {
         try {
             Gson().fromJson(
@@ -225,16 +225,11 @@ fun WishItem(wish: Wish,
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-
-            // ✅ Title Row
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
                         .size(10.dp)
-                        .background(
-                            color = Color(0xFFE91E63),
-                            shape = CircleShape
-                        )
+                        .background(color = primaryColor, shape = CircleShape)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
@@ -253,10 +248,9 @@ fun WishItem(wish: Wish,
                 }
             }
 
-            // ✅ Checklist - sirf tab dikhao jab items hon
             if (items.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Divider(color = Color(0xFFFFB6C1))
+                Divider(color = primaryColor.copy(alpha = 0.4f))
                 Spacer(modifier = Modifier.height(8.dp))
 
                 items.forEach { item ->
@@ -266,18 +260,13 @@ fun WishItem(wish: Wish,
                     ) {
                         Checkbox(
                             checked = item.isChecked,
-                            onCheckedChange = {
-                                onWishItemChecked(item, it)
-                            },
-                            colors = CheckboxDefaults.colors(
-                                checkedColor = Color(0xFF4CAF50)
-                            )
+                            onCheckedChange = { onWishItemChecked(item, it) },
+                            colors = CheckboxDefaults.colors(checkedColor = Color(0xFF4CAF50))
                         )
                         Text(
                             text = item.title,
                             fontSize = 13.sp,
-                            color = if (item.isChecked)
-                                Color.Gray else Color.Black,
+                            color = if (item.isChecked) Color.Gray else Color.Black,
                             style = TextStyle(
                                 textDecoration = if (item.isChecked)
                                     TextDecoration.LineThrough

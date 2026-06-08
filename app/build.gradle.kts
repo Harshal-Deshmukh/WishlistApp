@@ -66,6 +66,10 @@ dependencies {
 
     implementation("androidx.compose.material:material:$compose_version")
     implementation("com.google.code.gson:gson:2.10.1")
+
+    implementation ("androidx.datastore:datastore-preferences:1.0.0")
+
+
     
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.0")

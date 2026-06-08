@@ -1,5 +1,6 @@
 package com.example.wishlistapp
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -47,6 +48,7 @@ import com.example.wishlistapp.data.WishItem
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.launch
+import androidx.compose.material.MaterialTheme
 
 @Composable
 fun AddEditDetailView(
@@ -58,6 +60,8 @@ fun AddEditDetailView(
     val scope = rememberCoroutineScope()
     val scaffoldState = rememberScaffoldState()
 
+    // Dynamic color
+    val primaryColor = MaterialTheme.colors.primary
 
     if (id != 0L) {
         val wish = viewModel.getAWishById(id)
@@ -77,14 +81,15 @@ fun AddEditDetailView(
         viewModel.wishItemsState = listOf()
     }
 
-
     Scaffold(
+        backgroundColor = Color.White,
         topBar = {
             AppBarView(
                 title = if (id != 0L)
                     stringResource(id = R.string.update_wish)
                 else
-                    stringResource(id = R.string.add_wish)
+                    stringResource(id = R.string.add_wish),
+                    onBackClicked = { navController.navigateUp() }
             ) { navController.navigateUp() }
         },
         scaffoldState = scaffoldState,
@@ -92,45 +97,30 @@ fun AddEditDetailView(
         Column(
             modifier = Modifier
                 .padding(it)
+                .background(primaryColor.copy(alpha = 0.1f))
                 .wrapContentSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             Spacer(modifier = Modifier.height(10.dp))
-
-            WishTextField(
-                label = "Title",
-                value = viewModel.wishTitleState,
-                onValueChanged = { viewModel.onWishTitleChanged(it) }
-            )
-
+            WishTextField(label = "Title", value = viewModel.wishTitleState,
+                onValueChanged = { viewModel.onWishTitleChanged(it) })
+            Spacer(modifier = Modifier.height(10.dp))
+            WishTextField(label = "Description", value = viewModel.wishDescriptionState,
+                onValueChanged = { viewModel.onWishDescriptionChanged(it) })
             Spacer(modifier = Modifier.height(10.dp))
 
-            WishTextField(
-                label = "Description",
-                value = viewModel.wishDescriptionState,
-                onValueChanged = { viewModel.onWishDescriptionChanged(it) }
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            //  Checklist Section
-            Divider(color = Color(0xFFE91E63))
+            Divider(color = primaryColor)
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
                 text = "Checklist",
-                style = TextStyle(
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFFE91E63)
-                ),
+                style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = primaryColor),
                 modifier = Modifier.align(Alignment.Start)
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Items List
             viewModel.wishItemsState.forEach { item ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -138,12 +128,8 @@ fun AddEditDetailView(
                 ) {
                     Checkbox(
                         checked = item.isChecked,
-                        onCheckedChange = {
-                            viewModel.onWishItemChecked(item, it)
-                        },
-                        colors = CheckboxDefaults.colors(
-                            checkedColor = Color(0xFFE91E63)
-                        )
+                        onCheckedChange = { viewModel.onWishItemChecked(item, it) },
+                        colors = CheckboxDefaults.colors(checkedColor = primaryColor)
                     )
                     Text(
                         text = item.title,
@@ -151,105 +137,69 @@ fun AddEditDetailView(
                         style = TextStyle(
                             fontSize = 14.sp,
                             color = if (item.isChecked) Color.Gray else Color.Black,
-                            textDecoration = if (item.isChecked)
-                                TextDecoration.LineThrough
-                            else TextDecoration.None
+                            textDecoration = if (item.isChecked) TextDecoration.LineThrough else TextDecoration.None
                         )
                     )
                     IconButton(onClick = { viewModel.onWishItemDeleted(item) }) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete Item",
-                            tint = Color(0xFFE91E63)
-                        )
+                        Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete Item", tint = primaryColor)
                     }
                 }
             }
 
-            // Add Item Row
             val newItemText = remember { mutableStateOf("") }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Box(modifier = Modifier.weight(1f)) {
-                    WishTextField(
-                        label = "Add Item",
-                        value = newItemText.value,
-                        onValueChanged = { newItemText.value = it }
-                    )
+                    WishTextField(label = "Add Item", value = newItemText.value,
+                        onValueChanged = { newItemText.value = it })
                 }
-                IconButton(
-                    onClick = {
-                        if (newItemText.value.isNotEmpty()) {
-                            viewModel.onWishItemAdded(
-                                WishItem(title = newItemText.value)
-                            )
-                            newItemText.value = ""
-                        }
+                IconButton(onClick = {
+                    if (newItemText.value.isNotEmpty()) {
+                        viewModel.onWishItemAdded(WishItem(title = newItemText.value))
+                        newItemText.value = ""
                     }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Add Item",
-                        tint = Color(0xFFE91E63)
-                    )
+                }) {
+                    Icon(imageVector = Icons.Default.Add, contentDescription = "Add Item", tint = primaryColor)
                 }
             }
 
             Spacer(modifier = Modifier.height(10.dp))
 
-
             Button(
                 colors = ButtonDefaults.buttonColors(
-                    backgroundColor = Color(0xFFE91E63),
+                    backgroundColor = primaryColor,
                     contentColor = Color.White
                 ),
                 onClick = {
                     if (viewModel.wishTitleState.isNotEmpty()) {
                         if (id != 0L) {
-                            // Update
-                            viewModel.updateWish(
-                                Wish(
-                                    id = id,
-                                    title = viewModel.wishTitleState.trim(),
-                                    description = viewModel.wishDescriptionState.trim(),
-                                    items = Gson().toJson(viewModel.wishItemsState)
-                                )
-                            )
+                            viewModel.updateWish(Wish(
+                                id = id,
+                                title = viewModel.wishTitleState.trim(),
+                                description = viewModel.wishDescriptionState.trim(),
+                                items = Gson().toJson(viewModel.wishItemsState)
+                            ))
                         } else {
-                            // Add
-                            viewModel.addWish(
-                                Wish(
-                                    title = viewModel.wishTitleState.trim(),
-                                    description = viewModel.wishDescriptionState.trim(),
-                                    items = Gson().toJson(viewModel.wishItemsState)
-                                )
-                            )
+                            viewModel.addWish(Wish(
+                                title = viewModel.wishTitleState.trim(),
+                                description = viewModel.wishDescriptionState.trim(),
+                                items = Gson().toJson(viewModel.wishItemsState)
+                            ))
                             snackMessage.value = "Wish has been created"
                         }
                     } else {
                         snackMessage.value = "Enter fields to create a wish"
                     }
-
-                    scope.launch {
-                        navController.navigateUp()
-                    }
+                    scope.launch { navController.navigateUp() }
                 }
             ) {
                 Text(
-                    text = if (id != 0L)
-                        stringResource(id = R.string.update_wish)
-                    else
-                        stringResource(id = R.string.add_wish),
+                    text = if (id != 0L) stringResource(id = R.string.update_wish) else stringResource(id = R.string.add_wish),
                     style = TextStyle(fontSize = 18.sp)
                 )
             }
         }
     }
 }
-
 
 @Composable
 fun WishTextField(
@@ -272,3 +222,5 @@ fun WishTextField(
         )
     )
 }
+
+
